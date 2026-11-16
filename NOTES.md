@@ -35,6 +35,13 @@ your-codes/
 - **Serve:** ใช้ dropdown ตัวเดียวที่มีทั้ง variation และ "a percentage rollout" เหมือน GoFeatureFlag เก็บทั้ง `variationId` และ `percentage` ไว้คู่กัน สลับไปมาแล้วค่าเดิมจึงไม่หาย และตอนสร้าง output จะใช้แค่ค่าตาม `type` ที่เลือก
 - พอเปลี่ยนเป็น percentage ครั้งแรก จะแบ่งเท่าๆ กันให้อัตโนมัติ (50/50, 34/33/33) แทนที่จะขึ้น error "now 0%" ทันที ช่อง % จำกัดค่าไว้ที่ 0-100 ส่วนยอดรวมที่ไม่ถึง 100 แสดงเป็น error
 
+## Drag & Drop
+
+- ใช้ HTML5 Drag and Drop API ที่มีใน browser ไม่ได้เพิ่ม package โดย logic อยู่ใน hook `useDragReorder` ส่วน UI อยู่ใน `SortableList` ใช้ร่วมกันทั้ง list ของ rule และ children ใน group แล้วเรียก `moveValue` ของ TanStack
+- ลากได้จาก handle ⠿ เท่านั้น ระหว่างลากใช้ `setDragImage` แสดงทั้งแถว input ในแถวจึงไม่ถูกลากไปโดยไม่ตั้งใจ handle เป็น `div role="button"` เพราะ Firefox ไม่ยอมเริ่มลากจาก `<button>`
+- ลากได้เฉพาะภายใน list เดียวกัน: ตอนเริ่มลากจะจำ `listId` (ชื่อ array field) ไว้ เพราะระหว่าง `dragover` browser ไม่ให้อ่านข้อมูลใน `dataTransfer` ถ้าเป็นของ list อื่นจะไม่เรียก `preventDefault` จึง drop ไม่ได้ และใช้ `stopPropagation` ไม่ให้ group ชั้นนอกรับ event ซ้ำ มีเทสที่ fail ถ้าไม่มีตัวกันนี้
+- ใช้คีย์บอร์ดได้: โฟกัสที่ handle แล้วกด ↑/↓ เพื่อย้าย หลังย้ายโฟกัสจะตามไปที่ item นั้น
+
 ## Validation (Zod)
 
 - ใช้ schema ตัวเดียวสำหรับทั้งฟอร์ม group ที่ซ้อนกันได้ไม่จำกัดใช้ getter ของ Zod v4 ให้ schema อ้างถึงตัวเองได้

@@ -5,6 +5,7 @@ import type { FlagPath } from '../form/field-paths'
 import { createRule } from '../lib/defaults'
 import { FormSection } from './form-section'
 import { RuleCard } from './rule-card'
+import { SortableList } from './sortable-list'
 
 export function TargetingRulesField({ flagPath }: { flagPath: FlagPath }) {
   const form = useFlagForm()
@@ -26,15 +27,20 @@ export function TargetingRulesField({ flagPath }: { flagPath: FlagPath }) {
                 </p>
               )}
 
-              {/* Index keys: field names are index-based, see NOTES.md */}
-              {rules.map((_, index) => (
-                <RuleCard
-                  key={index}
-                  flagPath={flagPath}
-                  index={index}
-                  onRemove={() => rulesField.removeValue(index)}
-                />
-              ))}
+              <SortableList
+                listId={rulesField.name}
+                count={rules.length}
+                onMove={(from, to) => rulesField.moveValue(from, to)}
+                className="grid gap-4"
+                renderItem={(index, handle) => (
+                  <RuleCard
+                    flagPath={flagPath}
+                    index={index}
+                    onRemove={() => rulesField.removeValue(index)}
+                    dragHandle={handle}
+                  />
+                )}
+              />
 
               <Button
                 type="button"

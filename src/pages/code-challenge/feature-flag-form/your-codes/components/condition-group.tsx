@@ -6,8 +6,11 @@ import { useFlagForm } from '../form/form-hook'
 import type { GroupPath } from '../form/field-paths'
 import { createCondition, createGroup } from '../lib/defaults'
 import type { QueryNode } from '../schema/flag-schema'
+import type { DragHandleProps } from '../hooks/use-drag-reorder'
 import { ConditionRow } from './condition-row'
+import { DragHandle } from './drag-handle'
 import { FieldError, getErrorMessage } from './fields/field-error'
+import { SortableList } from './sortable-list'
 
 const COMBINATOR_OPTIONS = [
   { value: 'and', label: 'AND' },
@@ -22,12 +25,18 @@ const sameStructure = (a: QueryNode[], b: QueryNode[]) =>
 interface ConditionGroupProps {
   path: GroupPath
   depth: number
-  /** Missing for a rule's top-level group, which can't be removed. */
+  /** Missing for a rule's top-level group, which can't be removed or moved. */
   onRemove?: () => void
+  dragHandle?: DragHandleProps
 }
 
 /** A group of conditions and nested groups; renders itself for each nested group. */
-export function ConditionGroup({ path, depth, onRemove }: ConditionGroupProps) {
+export function ConditionGroup({
+  path,
+  depth,
+  onRemove,
+  dragHandle,
+}: ConditionGroupProps) {
   const form = useFlagForm()
   const childrenPath = `${path}.children` as const
   // Re-render only when children are added, removed or reordered
@@ -59,6 +68,7 @@ export function ConditionGroup({ path, depth, onRemove }: ConditionGroupProps) {
             )}
           >
             <div className="flex flex-wrap items-center gap-2">
+              {dragHandle && <DragHandle label="Group" {...dragHandle} />}
               <form.AppField name={`${path}.combinator`}>
                 {(field) => (
                   <field.SelectField
@@ -102,27 +112,30 @@ export function ConditionGroup({ path, depth, onRemove }: ConditionGroupProps) {
             </div>
 
             {children.length > 0 && (
-              <div className="grid gap-2">
-                {/* Index keys: field names are index-based, see NOTES.md */}
-                {children.map((node, index) => {
+              <SortableList
+                listId={childrenPath}
+                count={children.length}
+                onMove={(from, to) => childrenField.moveValue(from, to)}
+                className="grid gap-2"
+                renderItem={(index, handle) => {
                   const nodePath = `${path}.children[${index}]` as const
                   const remove = () => childrenField.removeValue(index)
-                  return node.kind === 'group' ? (
+                  return children[index].kind === 'group' ? (
                     <ConditionGroup
-                      key={index}
                       path={nodePath}
                       depth={depth + 1}
                       onRemove={remove}
+                      dragHandle={handle}
                     />
                   ) : (
                     <ConditionRow
-                      key={index}
                       path={nodePath}
                       onRemove={remove}
+                      dragHandle={handle}
                     />
                   )
-                })}
-              </div>
+                }}
+              />
             )}
 
             <FieldError id={`${childrenPath}-error`} message={error} />

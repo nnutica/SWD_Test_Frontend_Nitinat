@@ -237,3 +237,86 @@ describe('Multiple flags and metadata', () => {
     })
   })
 })
+
+describe('Drag and drop', () => {
+  const dataTransfer = {
+    setData: () => {},
+    setDragImage: () => {},
+    effectAllowed: '',
+    dropEffect: '',
+  }
+
+  /** Drag by a handle and drop on the item that holds another handle. */
+  const dragOnto = (handle: HTMLElement, targetHandle: HTMLElement) => {
+    const target = targetHandle.closest('[data-drag-item]') as HTMLElement
+    fireEvent.dragStart(handle, { dataTransfer })
+    fireEvent.dragOver(target, { dataTransfer })
+    fireEvent.drop(target, { dataTransfer })
+    fireEvent.dragEnd(handle, { dataTransfer })
+  }
+
+  const ruleNames = () =>
+    preview().flags['my-first-flag'].targeting?.map((rule) => rule.name)
+
+  const addTwoRules = () => {
+    fireEvent.click(screen.getByRole('button', { name: /add rule/i }))
+    fireEvent.click(screen.getByRole('button', { name: /add rule/i }))
+    typeInto(screen.getAllByLabelText('Rule name')[0], 'First')
+    typeInto(screen.getAllByLabelText('Rule name')[1], 'Second')
+  }
+
+  it('reorders rules by dragging the handle', () => {
+    render(<YourCode />)
+    addTwoRules()
+    dragOnto(
+      screen.getByRole('button', { name: /^Rule 1\. Drag/ }),
+      screen.getByRole('button', { name: /^Rule 2\. Drag/ }),
+    )
+    expect(ruleNames()).toEqual(['Second', 'First'])
+  })
+
+  it('reorders rules with the arrow keys', () => {
+    render(<YourCode />)
+    addTwoRules()
+    fireEvent.keyDown(screen.getByRole('button', { name: /^Rule 2\. Drag/ }), {
+      key: 'ArrowUp',
+    })
+    expect(ruleNames()).toEqual(['Second', 'First'])
+  })
+
+  it('reorders conditions inside the same group', () => {
+    render(<YourCode />)
+    fireEvent.click(screen.getByRole('button', { name: /add rule/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Condition' }))
+    typeInto(screen.getAllByLabelText('Field')[0], 'a')
+    typeInto(screen.getAllByLabelText('Value')[0], '1')
+    typeInto(screen.getAllByLabelText('Field')[1], 'b')
+    typeInto(screen.getAllByLabelText('Value')[1], '2')
+
+    const handles = screen.getAllByRole('button', { name: /^Condition\. Drag/ })
+    dragOnto(handles[1], handles[0])
+    expect(preview().flags['my-first-flag'].targeting?.[0].query).toBe(
+      'b eq 2 and a eq 1',
+    )
+  })
+
+  it('ignores a drop into a different group', () => {
+    render(<YourCode />)
+    fireEvent.click(screen.getByRole('button', { name: /add rule/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Group' }))
+    typeInto(screen.getAllByLabelText('Field')[0], 'a')
+    typeInto(screen.getAllByLabelText('Value')[0], '1')
+    typeInto(screen.getAllByLabelText('Field')[1], 'b')
+    typeInto(screen.getAllByLabelText('Value')[1], '2')
+
+    // The nested condition (index 0 of its group) dropped on the group itself
+    // (index 1 of the outer list) would swap the outer items if it were accepted
+    const nested = screen.getAllByRole('button', {
+      name: /^Condition\. Drag/,
+    })[1]
+    dragOnto(nested, screen.getByRole('button', { name: /^Group\. Drag/ }))
+    expect(preview().flags['my-first-flag'].targeting?.[0].query).toBe(
+      'a eq 1 and (b eq 2)',
+    )
+  })
+})
