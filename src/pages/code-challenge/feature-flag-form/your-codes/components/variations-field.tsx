@@ -62,7 +62,7 @@ export function VariationsField({ flagPath }: { flagPath: FlagPath }) {
                   <div key={index} className={ROW_GRID}>
                     <span
                       className={cn(
-                        'mt-[0.6875rem] size-2.5 rounded-full',
+                        'mt-2.75 size-2.5 rounded-full',
                         variationColor(index),
                       )}
                     />

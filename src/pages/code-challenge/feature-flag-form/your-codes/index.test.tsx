@@ -363,3 +363,22 @@ describe('Problem list', () => {
     expect(await screen.findByRole('button', { name: 'Copied' })).toBeTruthy()
   })
 })
+
+describe('Attribute suggestions', () => {
+  it('suggests role and group for a condition field', () => {
+    render(<YourCode />)
+    fireEvent.click(screen.getByRole('button', { name: /add rule/i }))
+    const field = screen.getByLabelText('Field')
+    const list = document.getElementById(field.getAttribute('list') ?? '')
+    const options = Array.from(list?.querySelectorAll('option') ?? []).map(
+      (option) => option.value,
+    )
+    expect(options).toEqual(expect.arrayContaining(['role', 'group']))
+
+    typeInto(field, 'role')
+    typeInto(screen.getByLabelText('Value'), 'admin')
+    expect(preview().flags['my-first-flag'].targeting?.[0].query).toBe(
+      'role eq "admin"',
+    )
+  })
+})

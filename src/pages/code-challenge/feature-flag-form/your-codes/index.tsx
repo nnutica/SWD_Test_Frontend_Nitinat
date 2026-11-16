@@ -1,4 +1,5 @@
 import Header from '#/components/features/header'
+import { AttributeSuggestions } from './components/attribute-suggestions'
 import { FlagsField } from './components/flags-field'
 import { JsonPreview } from './components/json-preview'
 import { useAppForm } from './form/form-hook'
@@ -18,6 +19,7 @@ function YourCode() {
       <form.AppForm>
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,28rem)]">
           <FlagsField />
+          <AttributeSuggestions />
           <aside className="lg:sticky lg:top-4">
             <JsonPreview />
           </aside>

@@ -2,13 +2,28 @@
 
 บันทึกการตัดสินใจทางเทคนิคระหว่างทำโจทย์ โค้ดทั้งหมดอยู่ใน `src/pages/code-challenge/feature-flag-form/your-codes/`
 
+## ข้อกำหนดของโจทย์ และจุดที่ทำ
+
+| ข้อกำหนด (หน้าโจทย์ / README)                    | ทำไว้ที่                                                                                                          |
+| ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------- |
+| Flag Metadata: ชื่อ Flag, คำอธิบาย, สถานะ        | `FlagDetails`: Flag name, **Description**, สวิตช์ Disable (รวมถึง Type, Version, Track events แบบ GoFeatureFlag)  |
+| Flag Variations                                  | `VariationsField`: เพิ่ม/ลบได้ ตรวจ value ตาม type                                                                |
+| Targeting Rules: Group เป็น array และ recursive  | `ConditionGroup` ซ้อนได้ไม่จำกัด AND/OR ได้ทุกชั้น                                                                |
+| Targeting Rules: Rule เป็น array (+ Drag & Drop) | `TargetingRulesField` + `SortableList` ลากสลับ rule และ condition/group ได้                                       |
+| Group & Role Management                          | condition กำหนด role/group ได้ เช่น `role eq "admin"` และช่อง Field มีรายการแนะนำ (`role`, `group`, `email`, ...) |
+| Validation Logic ผ่าน Zod                        | `schema/flag-schema.ts` ตรวจทุกชั้น error ขึ้นใต้ช่องที่ผิด                                                       |
+| JSON Preview ด้วย Monaco + `form.Subscribe`      | `JsonPreview` อัปเดตแบบ real-time                                                                                 |
+
+**ช่อง Description:** editor ของ GoFeatureFlag ไม่มีช่องนี้ แต่หน้าโจทย์ (`assignment.tsx`) ขอ "คำอธิบาย" ไว้ จึงเพิ่มให้ และเขียนลง `metadata.description` เพราะ config ของ GoFeatureFlag ไม่มี field description ที่ระดับบนสุดของ flag
+
 ## โครงสร้างโค้ด
 
 ```
 your-codes/
   schema/       Zod schema ของทั้งฟอร์ม และ type ทั้งหมดที่ infer มาจาก schema
-  lib/          pure function: แปลงเป็น query string, แปลงเป็น output JSON, ค่าเริ่มต้น
-  form/         การตั้งค่า TanStack Form (createFormHook, formOptions)
+  lib/          pure function: แปลงเป็น query string, แปลงเป็น output JSON, ค่าเริ่มต้น, ข้อความ error
+  form/         การตั้งค่า TanStack Form (createFormHook, formOptions) และ type ของ path
+  hooks/        useDragReorder (logic ของ drag & drop)
   components/   UI เท่านั้น ไม่มี business logic
 ```
 
@@ -45,8 +60,8 @@ your-codes/
 ## Validation (Zod)
 
 - ใช้ schema ตัวเดียวสำหรับทั้งฟอร์ม group ที่ซ้อนกันได้ไม่จำกัดใช้ getter ของ Zod v4 ให้ schema อ้างถึงตัวเองได้
-- การเช็กข้าม field (ชื่อ variation ซ้ำ, value ไม่ตรงกับ type, serve อ้าง variation ที่ถูกลบไปแล้ว, percentage รวมไม่ถึง 100) อยู่ใน `superRefine`
-- error ไปขึ้นใต้ช่องที่ผิดโดยตรง เพราะ TanStack นำ path จาก Zod (เช่น `variations[1].name`) ไปจับคู่กับชื่อ field ให้
+- การเช็กข้าม field (ชื่อ flag/variation ซ้ำ, value ไม่ตรงกับ type, serve อ้าง variation ที่ถูกลบไปแล้ว, percentage รวมไม่ถึง 100, key ของ metadata) อยู่ใน `superRefine`
+- error ไปขึ้นใต้ช่องที่ผิดโดยตรง เพราะ TanStack นำ path จาก Zod (เช่น `flags[0].variations[1].name`) ไปจับคู่กับชื่อ field ให้
 - id ของ input ตั้งตามชื่อ field ใต้ JSON preview จึงมีรายการ error ทั้งหมด และกดแต่ละรายการเพื่อกระโดดไปที่ช่องนั้นได้
 
 ## UI/UX
@@ -54,9 +69,15 @@ your-codes/
 - JSON preview อัปเดตทุกครั้งที่พิมพ์ มีป้าย **Valid / N errors** และปุ่ม **Copy** สำหรับคัดลอก config
 - ใต้ preview มีรายการ error ที่เขียนเป็นภาษาคน เช่น `my-first-flag › Rule 1 › Condition 2 › Field` แทน path ดิบ กดแล้วจะเลื่อนไปและโฟกัสที่ช่องนั้น ถ้า error ไม่มีช่องให้กรอก (เช่น group ว่าง) จะเลื่อนไปที่ข้อความ error แทน
 - error ขึ้นใต้ช่องที่ผิด และผูกกับ input ด้วย `aria-invalid` / `aria-describedby` screen reader จึงอ่านได้
+- ช่อง Field ของ condition มีรายการแนะนำ attribute ที่ใช้บ่อย (`<datalist>`) แต่ยังพิมพ์ชื่ออื่นเองได้
 - variation แต่ละตัวมีจุดสีของตัวเอง ใช้สีเดียวกันในรายการ Variations และใน dropdown ของ Serve
 - group ที่ซ้อนกันมีพื้นหลังสลับสี และ group ว่างจะมีขอบสีแดง
 - dropdown ทุกตัวเปิดขึ้นด้านบน (Radix popper `side="top"`)
+
+## สิ่งที่ตั้งใจไม่ทำ
+
+- **Progressive rollout** (ตัวเลือกที่ 3 ใน Serve ของ GoFeatureFlag): โจทย์ เกณฑ์ให้คะแนน และ `expected.json` ไม่ได้ขอ และไม่ได้โชว์ทักษะใหม่ เพราะแพทเทิร์น nested form, cross-field validation และ serve ที่สลับประเภทได้ มีอยู่แล้วใน percentage rollout จึงเลือกใช้เวลากับข้อที่อยู่ในเกณฑ์แทน ถ้าจะเพิ่มภายหลัง แค่เพิ่ม `type: 'progressive'` ใน `serveSchema` แล้วเพิ่ม case ใน `serveToOutput` และ `ServeField`
+- **ลากข้าม list** (เช่น ย้าย condition จาก group หนึ่งไปอีก group): ลากได้เฉพาะภายใน list เดียวกัน เพื่อให้ logic ง่าย และไม่ต้องย้าย field ข้าม path
 
 ## ปัญหาที่เจอและวิธีแก้
 
@@ -68,14 +89,15 @@ your-codes/
 ## การตั้งค่าโปรเจกต์ที่แก้
 
 - **`src/styles.css` (theme ของ shadcn):** ไฟล์ที่ได้มาประกาศ `--color-*` ไว้ใน `:root` ซึ่ง Tailwind v4 สร้าง utility ให้เฉพาะตัวแปรที่อยู่ใน `@theme` utility อย่าง `bg-card`, `bg-popover`, `text-destructive` และ `border-border` จึงไม่ถูกสร้างเลย (ตรวจจาก CSS ที่ build ออกมา) ผลคือ dropdown โปร่งใสและข้อความ error ไม่เป็นสีแดง นอกจากนี้ธีม light กับโหมด auto ไม่มีค่าสี และไม่มี `--radius` ผมแก้โดยย้ายตัวแปรไปไว้ใน `@theme inline`, เติมค่าสีของธีม light (neutral palette ของ shadcn), ให้ธีม dark ผูกกับ class `.dark` ที่ script ใน `__root.tsx` ใส่ให้อยู่แล้ว และกำหนด `--radius` ส่วน font ใช้ค่าเดิม
-
 - **pnpm 11:** ไม่อ่าน `pnpm.onlyBuiltDependencies` ใน `package.json` แล้ว ผมจึงตั้ง `allowBuilds` ใน `pnpm-workspace.yaml` แทน (อนุญาตแค่ `esbuild`) ได้ทดสอบแล้วว่าติดตั้งด้วย pnpm 10 ก็ยังผ่าน
 - **`tsconfig.json`:** ลบ `baseUrl` ออก เพราะ TypeScript 6 แจ้งว่า deprecated แล้ว `paths` ใช้งานได้โดยไม่ต้องมีมันตั้งแต่ TS 4.1
 - **shadcn components (switch, select, label, textarea):** สร้างจาก `radix-ui` ที่โจทย์ติดตั้งไว้แล้ว ไม่ได้เพิ่ม dependency ตอนรัน CLI บน Windows มันพยายามเพิ่ม package `cn` ที่ไม่เกี่ยวข้อง ผมจึงคืน `package.json` กับ lockfile เป็นของเดิม แล้วแก้ import ให้ชี้ไปที่ `#/lib/utils`
 - **error ของ scaffold:** แก้ import 2 บรรทัดที่ทำให้ `pnpm lint` และ `tsc` ไม่ผ่าน คือ `src/lib/utils.ts` (แยก `type ClassValue` ออกมาเป็น `import type` ตามกฎ eslint ของโปรเจกต์) และ `src/components/app-sidebar.tsx` (ลบ import ที่ไม่ได้ใช้) ตอนนี้ lint, `tsc`, test และ build ผ่านทั้งโปรเจกต์
 - **`vitest.config.ts`:** config นี้ใช้เฉพาะตอนเทส ไม่ได้ใส่ plugin ของ TanStack Start เพราะ plugin นั้นทำให้ React ถูก load เป็นสอง instance ใน jsdom จนเทส component ที่ใช้ hook ไม่ได้เลย ส่วน `vite.config.ts` ไม่ได้แก้
+- **`.vscode/settings.json`:** ตั้ง `css.lint.unknownAtRules: ignore` เพราะตัวตรวจ CSS ของ VS Code ไม่รู้จัก at-rule ของ Tailwind v4 (`@theme`, `@apply` ฯลฯ) และขึ้น warning ทั้งที่ build ได้ปกติ
 
 ## เทส
 
-- unit test ของ query builder, output mapping และ schema
-- component test (jsdom) ยืนยันว่าพิมพ์แล้ว preview เปลี่ยนตาม และ error ขึ้นใต้ช่องที่ถูกต้อง โดย mock Monaco ให้แสดงเป็น `<pre>` เพราะ Monaco โหลดจาก CDN ใน jsdom ไม่ได้
+- **unit test:** query builder, output mapping, schema (รวม recursive group, metadata และชื่อ flag ซ้ำ) และข้อความ error ภาษาคน
+- **component test (jsdom):** พิมพ์แล้ว preview เปลี่ยนตาม, error ขึ้นใต้ช่องที่ถูกต้อง, group ซ้อนกันหลายชั้น, serve/percentage, หลาย flag, metadata, drag & drop และคีย์บอร์ด, รายการ error ที่กดแล้วกระโดดไปที่ช่อง และปุ่ม Copy
+- mock Monaco ให้แสดงเป็น `<pre>` เพราะ Monaco โหลดจาก CDN ใน jsdom ไม่ได้ และเติม API ที่ jsdom ไม่มี (`hasPointerCapture`, `scrollIntoView`) ให้ Radix Select ทำงานได้

@@ -4,6 +4,7 @@ import { Button } from '#/components/ui/button'
 import { useFlagForm } from '../form/form-hook'
 import type { ConditionPath } from '../form/field-paths'
 import type { DragHandleProps } from '../hooks/use-drag-reorder'
+import { ATTRIBUTE_LIST_ID } from '../lib/attributes'
 import {
   OPERATOR_LABELS,
   OPERATOR_VALUES,
@@ -47,7 +48,12 @@ export function ConditionRow({
       <div className="grid flex-1 items-start gap-2 sm:grid-cols-3">
         <form.AppField name={`${path}.field`}>
           {(field) => (
-            <field.TextField label="Field" hideLabel placeholder="Field" />
+            <field.TextField
+              label="Field"
+              hideLabel
+              placeholder="Field, e.g. role"
+              list={ATTRIBUTE_LIST_ID}
+            />
           )}
         </form.AppField>
         <form.AppField name={`${path}.operator`}>
