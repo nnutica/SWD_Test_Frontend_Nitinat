@@ -45,7 +45,7 @@ describe('Feature flag editor', () => {
     fireEvent.change(nameInput, { target: { value: '' } })
 
     expect(nameInput).toHaveProperty('ariaInvalid', 'true')
-    expect(document.getElementById('name-error')?.textContent).toBe(
+    expect(document.getElementById('flags[0].name-error')?.textContent).toBe(
       'Flag name is required',
     )
     expect(screen.getByText('1 error')).toBeTruthy()
@@ -76,7 +76,7 @@ describe('Feature flag editor', () => {
       target: { value: 'Variation_1' },
     })
     expect(
-      document.getElementById('variations[1].name-error')?.textContent,
+      document.getElementById('flags[0].variations[1].name-error')?.textContent,
     ).toBe('Variation name must be unique')
   })
 })
@@ -113,13 +113,28 @@ describe('Targeting rules', () => {
     expect(screen.getAllByLabelText('Field')).toHaveLength(3)
   })
 
+  it('removes a group that has siblings after it', () => {
+    render(<YourCode />)
+    fireEvent.click(screen.getByRole('button', { name: /add rule/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Group' }))
+    fireEvent.click(screen.getAllByRole('button', { name: 'Group' })[0])
+    typeInto(screen.getAllByLabelText('Field')[0], 'a')
+    typeInto(screen.getAllByLabelText('Value')[0], '1')
+    typeInto(screen.getAllByLabelText('Field')[2], 'c')
+    typeInto(screen.getAllByLabelText('Value')[2], '3')
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Remove group' })[0])
+    expect(firstQuery()).toBe('a eq 1 and (c eq 3)')
+  })
+
   it('shows an error on a group with nothing in it', () => {
     render(<YourCode />)
     fireEvent.click(screen.getByRole('button', { name: /add rule/i }))
     fireEvent.click(screen.getByRole('button', { name: 'Remove condition' }))
 
     expect(
-      document.getElementById('rules[0].query.children-error')?.textContent,
+      document.getElementById('flags[0].rules[0].query.children-error')
+        ?.textContent,
     ).toBe('Add at least one condition or group')
   })
 })
@@ -162,11 +177,14 @@ describe('Serve', () => {
 
     typeInto(screen.getByLabelText('Variation_1'), '70')
     expect(
-      document.getElementById('defaultRule.percentage-error')?.textContent,
+      document.getElementById('flags[0].defaultRule.percentage-error')
+        ?.textContent,
     ).toBe('Percentages must add up to 100 (now 120)')
 
     typeInto(screen.getByLabelText('Variation_2'), '30')
-    expect(document.getElementById('defaultRule.percentage-error')).toBeNull()
+    expect(
+      document.getElementById('flags[0].defaultRule.percentage-error'),
+    ).toBeNull()
     expect(defaultRule()).toEqual({
       percentage: { Variation_1: 70, Variation_2: 30 },
     })
@@ -176,7 +194,46 @@ describe('Serve', () => {
     render(<YourCode />)
     fireEvent.click(screen.getByRole('button', { name: 'Remove variation 1' }))
     expect(
-      document.getElementById('defaultRule.variationId-error')?.textContent,
+      document.getElementById('flags[0].defaultRule.variationId-error')
+        ?.textContent,
     ).toBe('Select a variation')
+  })
+})
+
+describe('Multiple flags and metadata', () => {
+  it('adds another flag next to the first one in the output', () => {
+    render(<YourCode />)
+    fireEvent.click(screen.getByRole('button', { name: /add another flag/i }))
+    expect(Object.keys(preview().flags)).toEqual([
+      'my-first-flag',
+      'new-flag-2',
+    ])
+
+    // Both flags now have a remove button; removing the first keeps the second
+    fireEvent.click(screen.getAllByRole('button', { name: /remove flag/i })[0])
+    expect(Object.keys(preview().flags)).toEqual(['new-flag-2'])
+    expect(screen.queryByRole('button', { name: /remove flag/i })).toBeNull()
+  })
+
+  it('flags a second flag that reuses a name', () => {
+    render(<YourCode />)
+    fireEvent.click(screen.getByRole('button', { name: /add another flag/i }))
+    typeInto(screen.getAllByLabelText('Flag name')[1], 'my-first-flag')
+    expect(document.getElementById('flags[1].name-error')?.textContent).toBe(
+      'Flag name must be unique',
+    )
+  })
+
+  it('writes key/value metadata next to the description', () => {
+    render(<YourCode />)
+    typeInto(screen.getByLabelText('Description'), 'New checkout')
+    fireEvent.click(screen.getByRole('button', { name: /add metadata/i }))
+    typeInto(screen.getByLabelText('Metadata 1 key'), 'Age')
+    typeInto(screen.getByLabelText('Metadata 1 value'), '22')
+
+    expect(preview().flags['my-first-flag'].metadata).toEqual({
+      description: 'New checkout',
+      Age: '22',
+    })
   })
 })

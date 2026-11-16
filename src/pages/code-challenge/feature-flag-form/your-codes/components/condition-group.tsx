@@ -103,19 +103,20 @@ export function ConditionGroup({ path, depth, onRemove }: ConditionGroupProps) {
 
             {children.length > 0 && (
               <div className="grid gap-2">
+                {/* Index keys: field names are index-based, see NOTES.md */}
                 {children.map((node, index) => {
                   const nodePath = `${path}.children[${index}]` as const
                   const remove = () => childrenField.removeValue(index)
                   return node.kind === 'group' ? (
                     <ConditionGroup
-                      key={node.id}
+                      key={index}
                       path={nodePath}
                       depth={depth + 1}
                       onRemove={remove}
                     />
                   ) : (
                     <ConditionRow
-                      key={node.id}
+                      key={index}
                       path={nodePath}
                       onRemove={remove}
                     />

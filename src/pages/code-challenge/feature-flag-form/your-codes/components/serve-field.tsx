@@ -14,7 +14,7 @@ import {
 } from '#/components/ui/select'
 import { cn } from '#/lib/utils'
 import { useFlagForm } from '../form/form-hook'
-import type { ServePath } from '../form/field-paths'
+import type { FlagPath, ServePath } from '../form/field-paths'
 import { evenSplit } from '../lib/defaults'
 import { variationColor } from '../lib/variation-colors'
 import type { Serve, Variation } from '../schema/flag-schema'
@@ -134,14 +134,19 @@ function PercentageInputs({ path, variations }: PercentageInputsProps) {
 
 interface ServeFieldProps {
   path: ServePath
+  /** The flag whose variations can be served. */
+  flagPath: FlagPath
 }
 
 /** Pick one variation or split traffic by percentage, like GoFeatureFlag's "Serve". */
-export function ServeField({ path }: ServeFieldProps) {
+export function ServeField({ path, flagPath }: ServeFieldProps) {
   const form = useFlagForm()
   const variations = useStore(
     form.store,
-    (state) => state.values.variations.map(({ id, name }) => ({ id, name })),
+    (state) =>
+      (getBy(state.values, `${flagPath}.variations`) as Variation[]).map(
+        ({ id, name }) => ({ id, name }),
+      ),
     sameVariations,
   )
   const type = useStore(

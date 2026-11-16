@@ -7,7 +7,7 @@ import { fieldContext, formContext } from './form-context'
 import { flagFormOptions } from './form-options'
 
 /** App-wide form hook: `form.AppField` exposes these inputs already wired to the field. */
-export const { useAppForm, withForm, useTypedAppFormContext } = createFormHook({
+export const { useAppForm, useTypedAppFormContext } = createFormHook({
   fieldContext,
   formContext,
   fieldComponents: { TextField, TextareaField, SelectField, SwitchField },

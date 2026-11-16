@@ -1,7 +1,16 @@
 import { formOptions, standardSchemaValidators } from '@tanstack/react-form'
-import { DEFAULT_FLAG_VALUES } from '../lib/defaults'
-import { flagSchema } from '../schema/flag-schema'
-import type { FlagFormValues, QueryGroup, Rule } from '../schema/flag-schema'
+import { DEFAULT_FORM_VALUES } from '../lib/defaults'
+import { configSchema } from '../schema/flag-schema'
+import type {
+  Flag,
+  FlagFormValues,
+  QueryGroup,
+  Rule,
+} from '../schema/flag-schema'
+
+type RuleState = Omit<Rule, 'query'> & {
+  query: Omit<QueryGroup, 'children'> & { children: unknown[] }
+}
 
 /**
  * The form state as TanStack Form sees it. TanStack lists every possible field
@@ -9,15 +18,13 @@ import type { FlagFormValues, QueryGroup, Rule } from '../schema/flag-schema'
  * Typing group children as `unknown[]` stops that walk; nested paths are built
  * at runtime anyway, and Zod still validates the whole tree.
  */
-export type FlagFormState = Omit<FlagFormValues, 'rules'> & {
-  rules: (Omit<Rule, 'query'> & {
-    query: Omit<QueryGroup, 'children'> & { children: unknown[] }
-  })[]
+export interface FlagFormState {
+  flags: (Omit<Flag, 'rules'> & { rules: RuleState[] })[]
 }
 
-const defaultValues: FlagFormState = DEFAULT_FLAG_VALUES
+const defaultValues: FlagFormState = DEFAULT_FORM_VALUES
 
-// Shared by useAppForm and every withForm section so they agree on the form type
+// Shared by useAppForm and useFlagForm so they agree on the form type
 export const flagFormOptions = formOptions({
   defaultValues,
   validators: {
@@ -26,7 +33,7 @@ export const flagFormOptions = formOptions({
     onChange: ({ value }) =>
       standardSchemaValidators.validate(
         { value, validationSource: 'form' },
-        flagSchema,
+        configSchema,
       ),
   },
 })

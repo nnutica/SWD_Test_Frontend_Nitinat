@@ -1,4 +1,9 @@
-import type { FlagFormValues, Serve, Variation } from '../schema/flag-schema'
+import type {
+  Flag,
+  FlagFormValues,
+  Serve,
+  Variation,
+} from '../schema/flag-schema'
 import { groupToQuery } from './query-builder'
 import { parseVariationValue } from './variation-value'
 
@@ -8,14 +13,14 @@ type ServeOutput =
 
 type TargetingOutput = { name: string; query: string } & ServeOutput
 
-interface FlagOutput {
+export interface FlagOutput {
   variations: Record<string, unknown>
   targeting?: TargetingOutput[]
   defaultRule: ServeOutput
   disable?: boolean
   trackEvents?: boolean
   version?: string
-  metadata?: { description: string }
+  metadata?: Record<string, string>
 }
 
 export interface FlagConfigOutput {
@@ -38,35 +43,51 @@ export function serveToOutput(
   }
 }
 
-/** Convert form values to the GoFeatureFlag config shown in the preview. */
-export function toOutput(values: FlagFormValues): FlagConfigOutput {
+/** Description plus the free key/value entries, as GoFeatureFlag's `metadata`. */
+function metadataToOutput(flag: Flag): Record<string, string> | undefined {
+  const description = flag.description.trim()
+  const metadata = {
+    ...(description ? { description } : {}),
+    ...Object.fromEntries(flag.metadata.map((e) => [e.key, e.value])),
+  }
+  return Object.keys(metadata).length > 0 ? metadata : undefined
+}
+
+/** One flag in GoFeatureFlag's config format. */
+export function flagToOutput(flag: Flag): FlagOutput {
   const variations = Object.fromEntries(
-    values.variations.map((v) => {
-      const parsed = parseVariationValue(values.type, v.value)
+    flag.variations.map((v) => {
+      const parsed = parseVariationValue(flag.type, v.value)
       // Keep the raw text while it is invalid so the preview still shows it
       return [v.name, parsed.ok ? parsed.value : v.value]
     }),
   )
 
-  const targeting = values.rules.map((rule) => ({
+  const targeting = flag.rules.map((rule) => ({
     name: rule.name,
     query: groupToQuery(rule.query),
-    ...serveToOutput(rule.serve, values.variations),
+    ...serveToOutput(rule.serve, flag.variations),
   }))
-  const version = values.version.trim()
-  const description = values.description.trim()
+  const version = flag.version.trim()
 
   // Like the GoFeatureFlag editor, fields equal to their default are undefined,
   // and JSON.stringify drops undefined keys from the preview.
-  const flag: FlagOutput = {
+  return {
     variations,
     targeting: targeting.length > 0 ? targeting : undefined,
-    defaultRule: serveToOutput(values.defaultRule, values.variations),
-    disable: values.disabled ? true : undefined,
-    trackEvents: values.trackEvents ? undefined : false,
+    defaultRule: serveToOutput(flag.defaultRule, flag.variations),
+    disable: flag.disabled ? true : undefined,
+    trackEvents: flag.trackEvents ? undefined : false,
     version: version || undefined,
-    metadata: description ? { description } : undefined,
+    metadata: metadataToOutput(flag),
   }
+}
 
-  return { flags: { [values.name]: flag } }
+/** Convert form values to the GoFeatureFlag config shown in the preview. */
+export function toOutput(values: FlagFormValues): FlagConfigOutput {
+  return {
+    flags: Object.fromEntries(
+      values.flags.map((flag) => [flag.name, flagToOutput(flag)]),
+    ),
+  }
 }

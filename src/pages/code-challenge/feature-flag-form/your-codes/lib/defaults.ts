@@ -1,6 +1,8 @@
 import type {
   Condition,
+  Flag,
   FlagFormValues,
+  MetadataEntry,
   QueryGroup,
   Rule,
   Serve,
@@ -53,8 +55,34 @@ export const createRule = (position: number, variationId: string): Rule => ({
   serve: createServe(variationId),
 })
 
+export const createMetadataEntry = (): MetadataEntry => ({
+  id: createId(),
+  key: '',
+  value: '',
+})
+
+/** A new flag starts like GoFeatureFlag's: two boolean variations, serving the first. */
+export function createFlag(position: number): Flag {
+  const on = { id: createId(), name: 'Variation_1', value: 'true' }
+  const off = { id: createId(), name: 'Variation_2', value: 'false' }
+  return {
+    id: createId(),
+    name: `new-flag-${position}`,
+    description: '',
+    version: '',
+    type: 'boolean',
+    disabled: false,
+    trackEvents: true,
+    variations: [on, off],
+    rules: [],
+    defaultRule: createServe(on.id),
+    metadata: [],
+  }
+}
+
 // Fixed ids so the server and client render the same first state
-export const DEFAULT_FLAG_VALUES: FlagFormValues = {
+export const DEFAULT_FLAG: Flag = {
+  id: 'flag-1',
   name: 'my-first-flag',
   description: '',
   version: '',
@@ -67,4 +95,7 @@ export const DEFAULT_FLAG_VALUES: FlagFormValues = {
   ],
   rules: [],
   defaultRule: createServe('variation-1'),
+  metadata: [],
 }
+
+export const DEFAULT_FORM_VALUES: FlagFormValues = { flags: [DEFAULT_FLAG] }

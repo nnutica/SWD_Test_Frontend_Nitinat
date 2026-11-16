@@ -17,15 +17,18 @@ your-codes/
 
 ## Output format
 
-- ครอบด้วย `"flags": { "<flag-name>": {...} }` ตาม `expected.json` ของโจทย์
+- ครอบด้วย `"flags": { "<flag-name>": {...} }` ตาม `expected.json` ของโจทย์ และกด **Add another flag** เพิ่มได้หลาย flag ใน config เดียวเหมือน GoFeatureFlag ชื่อ flag ห้ามซ้ำกัน
 - **percentage rollout** ใช้ format จริงของ GoFeatureFlag คือ `"percentage": { "on": 50, "off": 50 }` ไม่ใช้ `"percentage": 50, "variation": "on"` แบบใน `expected.json` เพราะโจทย์ให้ทำให้เหมือน GoFeatureFlag และ format จริงแบ่งเปอร์เซ็นต์ให้หลาย variation ได้ (รวมกันต้องเป็น 100)
 - field ที่ค่าเท่ากับ default ของ GoFeatureFlag (`disable: false`, `trackEvents: true`, version หรือ description ที่ว่าง) จะไม่แสดงใน output เหมือนที่ editor ของ GoFeatureFlag ทำ
+- **metadata** รวม description กับ key/value ที่ผู้ใช้เพิ่มเองไว้ใน object เดียว เช่น `{ "description": "...", "Age": "22" }` value เป็น string เสมอเหมือน GoFeatureFlag และ key ห้ามว่าง ห้ามซ้ำ ห้ามใช้คำว่า `description` เพราะช่อง Description ใช้ key นี้อยู่แล้ว
+- **validate เข้มกว่า GoFeatureFlag:** editor ของ GoFeatureFlag ยอมให้ key ว่าง, ชื่อที่มีช่องว่าง (`"V3 "`) และ value ของ boolean ที่ไม่ใช่ true/false (เช่น `any`) ผ่านไปได้ ซึ่งจะได้ config ที่ใช้งานจริงไม่ได้ ของเราจึงแสดง error แทน
 
 ## Form state (TanStack Form)
 
-- ใช้ `createFormHook` แล้วแยกแต่ละ section เป็น `withForm` ส่วน input (`TextField`, `SelectField` ฯลฯ) อ่านค่าจาก field context จึงไม่ต้องส่ง `value`/`onChange` ต่อกันหลายชั้น
+- ใช้ `createFormHook` สร้าง form ตัวเดียวใน `YourCode` แล้วส่งให้ทุก section ผ่าน `form.AppForm` จากนั้นทุก component อ่าน form ด้วย `useFlagForm()` (`useTypedAppFormContext`) ซึ่งได้ type ครบ และไม่ต้องส่ง `form` ผ่าน props หลายชั้น ส่วน input (`TextField`, `SelectField` ฯลฯ) อ่านค่าจาก field context
+- ทุก section รับ `flagPath` (เช่น `flags[1]`) แล้วต่อ path เอง component ชุดเดียวจึงใช้กับ flag ไหนก็ได้
 - **re-render:** แต่ละ input subscribe แค่ค่าของตัวเอง list ที่ใช้ `mode="array"` re-render เฉพาะตอนเพิ่มหรือลบ item (ยืนยันจาก source ของ `useField`) และมีแค่ JSON preview ที่ subscribe ค่าทั้งฟอร์มผ่าน `form.Subscribe`
-- **group ที่ซ้อนกัน (recursive):** `ConditionGroup` render ตัวเองซ้ำสำหรับ group ลูก โดยรับ `path` (เช่น `rules[0].query.children[1]`) แล้วอ่าน form จาก context (`form.AppForm` + `useTypedAppFormContext`) จึงไม่ต้องส่ง `form` ผ่าน props ไปทุกชั้น
+- **group ที่ซ้อนกัน (recursive):** `ConditionGroup` render ตัวเองซ้ำสำหรับ group ลูก โดยรับ `path` เช่น `flags[0].rules[0].query.children[1]`
 - group อ่านรายการ children ด้วย `useStore` และฟังก์ชัน `compare` ที่ดูแค่ `id` และ `kind` จึง re-render เฉพาะตอนเพิ่ม ลบ หรือสลับลำดับ พิมพ์ใน condition ลึกๆ จะ re-render แค่ input ช่องนั้น
 - type ของ path (`GroupPath`, `ConditionPath`) เขียนเป็น template literal จึงไม่ต้อง cast และ TS ยังกันไม่ให้วาง condition ไว้ที่ root ของ query ซึ่งต้องเป็น group เสมอ
 - serve อ้าง variation ด้วย `id` แทนชื่อ เปลี่ยนชื่อ variation แล้วค่าที่เลือกไว้จึงไม่หลุด และค่อยแปลงกลับเป็นชื่อตอนสร้าง output
@@ -43,6 +46,7 @@ your-codes/
 
 - **TS2589 "Type instantiation is excessively deep":** TanStack สร้างรายชื่อ field ทุกตัวที่เป็นไปได้จาก type ของฟอร์ม แต่ type ที่อ้างถึงตัวเองทำให้รายชื่อนี้ไม่มีวันจบ ผมแก้โดยใช้ `FlagFormState` ซึ่งให้ `children` ของ group เป็น `unknown[]` field ชั้นบนยังถูกเช็ก type ครบ ส่วน path ที่ซ้อนกันสร้างตอน runtime อยู่แล้ว และ Zod ยังตรวจทั้ง tree เหมือนเดิม
 - **dev server crash:** devtools ของ TanStack ใช้ `JSON.stringify` กับ option ของฟอร์ม ซึ่งพังเมื่อเจอ schema ที่อ้างถึงตัวเอง ผมแก้โดยห่อ schema ด้วย function validator ผ่าน `standardSchemaValidators.validate` ซึ่ง error ยังไปขึ้นตาม field เหมือนเดิม
+- **ลบ flag ตัวแรกแล้ว crash:** เดิมใช้ `key={id}` แต่ชื่อ field อิงตาม index พอลบ item ตัวหน้า component เดิมจะถูกเปลี่ยนชื่อ field ไปเป็นตัวถัดไป และ `useField` render อีกหนึ่งรอบด้วย FieldApi ตัวเก่า (ซึ่งชี้ไปที่ item ที่ถูกลบแล้ว) ก่อนจะสลับเป็นตัวใหม่ ค่าจึงเป็น `undefined` ผมแก้โดยให้ list ที่สร้าง field ใช้ `key={index}` ตามตัวอย่าง array field ใน docs ของ TanStack ชื่อ field ของแต่ละ component จึงไม่เปลี่ยนเลย และมีเทสครอบไว้แล้ว
 - **Monaco ตอน server render:** `@monaco-editor/react` เป็น CommonJS ตอนรันบน server default import จึงได้ object ของทั้ง module แทน component ผมแก้เป็น named import `{ Editor }`
 
 ## การตั้งค่าโปรเจกต์ที่แก้

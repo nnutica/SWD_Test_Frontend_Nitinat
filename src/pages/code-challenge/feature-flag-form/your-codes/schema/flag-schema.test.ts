@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_FLAG_VALUES } from '../lib/defaults'
-import { flagSchema } from './flag-schema'
-import type { FlagFormValues, QueryGroup } from './flag-schema'
+import { DEFAULT_FLAG } from '../lib/defaults'
+import { configSchema, flagSchema } from './flag-schema'
+import type { Flag, QueryGroup } from './flag-schema'
 
 /** Map each error path to its message, e.g. { "variations.1.name": "..." }. */
-function errorsOf(values: FlagFormValues) {
+function errorsOf(values: Flag) {
   const result = flagSchema.safeParse(values)
   if (result.success) return {}
   return Object.fromEntries(
@@ -12,14 +12,14 @@ function errorsOf(values: FlagFormValues) {
   )
 }
 
-const withValues = (overrides: Partial<FlagFormValues>): FlagFormValues => ({
-  ...DEFAULT_FLAG_VALUES,
+const withValues = (overrides: Partial<Flag>): Flag => ({
+  ...DEFAULT_FLAG,
   ...overrides,
 })
 
 describe('flagSchema', () => {
   it('accepts the default values', () => {
-    expect(errorsOf(DEFAULT_FLAG_VALUES)).toEqual({})
+    expect(errorsOf(DEFAULT_FLAG)).toEqual({})
   })
 
   it('rejects an empty flag name or one with spaces', () => {
@@ -167,5 +167,36 @@ describe('flagSchema', () => {
       }),
     )
     expect(errors).toEqual({})
+  })
+})
+
+describe('flag metadata', () => {
+  it('requires unique keys and keeps "description" for its own field', () => {
+    const errors = errorsOf(
+      withValues({
+        metadata: [
+          { id: 'm1', key: 'team', value: 'checkout' },
+          { id: 'm2', key: 'team', value: 'growth' },
+          { id: 'm3', key: 'description', value: 'x' },
+          { id: 'm4', key: '', value: '' },
+        ],
+      }),
+    )
+    expect(errors).toEqual({
+      'metadata.1.key': 'Key must be unique',
+      'metadata.2.key': 'Use the Description field instead',
+      'metadata.3.key': 'Key is required',
+    })
+  })
+})
+
+describe('configSchema', () => {
+  it('requires every flag name to be unique', () => {
+    const result = configSchema.safeParse({
+      flags: [DEFAULT_FLAG, { ...DEFAULT_FLAG, id: 'flag-2' }],
+    })
+    expect(
+      result.error?.issues.map((i) => [i.path.join('.'), i.message]),
+    ).toEqual([['flags.1.name', 'Flag name must be unique']])
   })
 })

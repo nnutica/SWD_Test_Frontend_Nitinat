@@ -1,4 +1,4 @@
-import { flagSchema } from '../schema/flag-schema'
+import { configSchema } from '../schema/flag-schema'
 import type { FlagFormValues } from '../schema/flag-schema'
 
 export interface FormIssue {
@@ -6,7 +6,7 @@ export interface FormIssue {
   message: string
 }
 
-/** Zod path to a TanStack field name: ['variations', 1, 'name'] -> 'variations[1].name'. */
+/** Zod path to a TanStack field name: ['flags', 0, 'name'] -> 'flags[0].name'. */
 export function toFieldName(path: readonly PropertyKey[]): string {
   return path
     .map((key, index) => {
@@ -18,7 +18,7 @@ export function toFieldName(path: readonly PropertyKey[]): string {
 
 /** Every validation problem in the form, for the summary next to the preview. */
 export function getFormIssues(values: FlagFormValues): FormIssue[] {
-  const result = flagSchema.safeParse(values)
+  const result = configSchema.safeParse(values)
   if (result.success) return []
   return result.error.issues.map((issue) => ({
     fieldName: toFieldName(issue.path),

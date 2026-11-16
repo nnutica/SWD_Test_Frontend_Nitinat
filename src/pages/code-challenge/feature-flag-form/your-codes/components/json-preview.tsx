@@ -3,8 +3,8 @@ import { Editor } from '@monaco-editor/react'
 import { CircleAlertIcon, CircleCheckIcon } from 'lucide-react'
 import { useMemo } from 'react'
 import { cn } from '#/lib/utils'
-import { withForm } from '../form/form-hook'
-import { asFlagValues, flagFormOptions } from '../form/form-options'
+import { useFlagForm } from '../form/form-hook'
+import { asFlagValues } from '../form/form-options'
 import { getFormIssues } from '../lib/form-issues'
 import { toOutput } from '../lib/to-output'
 import type { FlagFormValues } from '../schema/flag-schema'
@@ -90,14 +90,12 @@ function PreviewPanel({ values }: { values: FlagFormValues }) {
   )
 }
 
-export const JsonPreview = withForm({
-  ...flagFormOptions,
-  render: function Render({ form }) {
-    // The preview is the one place that needs every value, so only it subscribes to all of them
-    return (
-      <form.Subscribe selector={(state) => state.values}>
-        {(values) => <PreviewPanel values={asFlagValues(values)} />}
-      </form.Subscribe>
-    )
-  },
-})
+export function JsonPreview() {
+  const form = useFlagForm()
+  // The preview is the one place that needs every value, so only it subscribes to all of them
+  return (
+    <form.Subscribe selector={(state) => state.values}>
+      {(values) => <PreviewPanel values={asFlagValues(values)} />}
+    </form.Subscribe>
+  )
+}

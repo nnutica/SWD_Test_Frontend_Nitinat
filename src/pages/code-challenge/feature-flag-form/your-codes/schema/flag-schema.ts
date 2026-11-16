@@ -53,6 +53,12 @@ export const variationSchema = z.object({
   value: z.string(),
 })
 
+export const metadataEntrySchema = z.object({
+  id: z.string(),
+  key: keySchema('Key'),
+  value: z.string(),
+})
+
 export const ruleSchema = z.object({
   id: z.string(),
   name: z.string().trim().min(1, 'Rule name is required'),
@@ -62,6 +68,7 @@ export const ruleSchema = z.object({
 
 export const flagSchema = z
   .object({
+    id: z.string(),
     name: keySchema('Flag name'),
     description: z.string(),
     version: z.string(),
@@ -71,6 +78,7 @@ export const flagSchema = z
     variations: z.array(variationSchema).min(1, 'Add at least one variation'),
     rules: z.array(ruleSchema),
     defaultRule: serveSchema,
+    metadata: z.array(metadataEntrySchema),
   })
   // Checks that need more than one field: unique names, value vs type, serve targets
   .superRefine((flag, ctx) => {
@@ -100,6 +108,42 @@ export const flagSchema = z
       checkServe(rule.serve, variationIds, ['rules', index, 'serve'], ctx)
     })
     checkServe(flag.defaultRule, variationIds, ['defaultRule'], ctx)
+
+    const seenKeys = new Set<string>()
+    flag.metadata.forEach((entry, index) => {
+      // The Description field already writes metadata.description
+      const message =
+        entry.key === 'description'
+          ? 'Use the Description field instead'
+          : seenKeys.has(entry.key)
+            ? 'Key must be unique'
+            : undefined
+      if (message) {
+        ctx.addIssue({
+          code: 'custom',
+          message,
+          path: ['metadata', index, 'key'],
+        })
+      }
+      seenKeys.add(entry.key)
+    })
+  })
+
+/** The whole editor: one or more flags, like a GoFeatureFlag config file. */
+export const configSchema = z
+  .object({ flags: z.array(flagSchema).min(1, 'Add at least one flag') })
+  .superRefine((config, ctx) => {
+    const seenNames = new Set<string>()
+    config.flags.forEach((flag, index) => {
+      if (seenNames.has(flag.name)) {
+        ctx.addIssue({
+          code: 'custom',
+          message: 'Flag name must be unique',
+          path: ['flags', index, 'name'],
+        })
+      }
+      seenNames.add(flag.name)
+    })
   })
 
 function checkServe(
@@ -140,4 +184,6 @@ export type QueryNode = Condition | QueryGroup
 export type Serve = z.infer<typeof serveSchema>
 export type Variation = z.infer<typeof variationSchema>
 export type Rule = z.infer<typeof ruleSchema>
-export type FlagFormValues = z.infer<typeof flagSchema>
+export type MetadataEntry = z.infer<typeof metadataEntrySchema>
+export type Flag = z.infer<typeof flagSchema>
+export type FlagFormValues = z.infer<typeof configSchema>
