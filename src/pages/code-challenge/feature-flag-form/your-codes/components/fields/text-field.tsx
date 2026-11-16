@@ -7,7 +7,7 @@ import { FieldError, errorA11yProps, getErrorMessage } from './field-error'
 
 interface TextFieldProps extends Pick<
   ComponentProps<'input'>,
-  'placeholder' | 'inputMode' | 'className'
+  'placeholder' | 'inputMode' | 'className' | 'disabled'
 > {
   label: string
   hideLabel?: boolean
