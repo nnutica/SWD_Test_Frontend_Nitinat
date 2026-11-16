@@ -2,7 +2,7 @@ import { getBy, useStore } from '@tanstack/react-form'
 import { MinusIcon } from 'lucide-react'
 import { Button } from '#/components/ui/button'
 import { useFlagForm } from '../form/form-hook'
-import type { ConditionPath } from '../form/query-paths'
+import type { ConditionPath } from '../form/field-paths'
 import {
   OPERATOR_LABELS,
   OPERATOR_VALUES,

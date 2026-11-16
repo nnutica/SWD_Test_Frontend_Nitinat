@@ -29,6 +29,8 @@ your-codes/
 - group อ่านรายการ children ด้วย `useStore` และฟังก์ชัน `compare` ที่ดูแค่ `id` และ `kind` จึง re-render เฉพาะตอนเพิ่ม ลบ หรือสลับลำดับ พิมพ์ใน condition ลึกๆ จะ re-render แค่ input ช่องนั้น
 - type ของ path (`GroupPath`, `ConditionPath`) เขียนเป็น template literal จึงไม่ต้อง cast และ TS ยังกันไม่ให้วาง condition ไว้ที่ root ของ query ซึ่งต้องเป็น group เสมอ
 - serve อ้าง variation ด้วย `id` แทนชื่อ เปลี่ยนชื่อ variation แล้วค่าที่เลือกไว้จึงไม่หลุด และค่อยแปลงกลับเป็นชื่อตอนสร้าง output
+- **Serve:** ใช้ dropdown ตัวเดียวที่มีทั้ง variation และ "a percentage rollout" เหมือน GoFeatureFlag เก็บทั้ง `variationId` และ `percentage` ไว้คู่กัน สลับไปมาแล้วค่าเดิมจึงไม่หาย และตอนสร้าง output จะใช้แค่ค่าตาม `type` ที่เลือก
+- พอเปลี่ยนเป็น percentage ครั้งแรก จะแบ่งเท่าๆ กันให้อัตโนมัติ (50/50, 34/33/33) แทนที่จะขึ้น error "now 0%" ทันที ช่อง % จำกัดค่าไว้ที่ 0-100 ส่วนยอดรวมที่ไม่ถึง 100 แสดงเป็น error
 
 ## Validation (Zod)
 
@@ -44,6 +46,8 @@ your-codes/
 - **Monaco ตอน server render:** `@monaco-editor/react` เป็น CommonJS ตอนรันบน server default import จึงได้ object ของทั้ง module แทน component ผมแก้เป็น named import `{ Editor }`
 
 ## การตั้งค่าโปรเจกต์ที่แก้
+
+- **`src/styles.css` (theme ของ shadcn):** ไฟล์ที่ได้มาประกาศ `--color-*` ไว้ใน `:root` ซึ่ง Tailwind v4 สร้าง utility ให้เฉพาะตัวแปรที่อยู่ใน `@theme` utility อย่าง `bg-card`, `bg-popover`, `text-destructive` และ `border-border` จึงไม่ถูกสร้างเลย (ตรวจจาก CSS ที่ build ออกมา) ผลคือ dropdown โปร่งใสและข้อความ error ไม่เป็นสีแดง นอกจากนี้ธีม light กับโหมด auto ไม่มีค่าสี และไม่มี `--radius` ผมแก้โดยย้ายตัวแปรไปไว้ใน `@theme inline`, เติมค่าสีของธีม light (neutral palette ของ shadcn), ให้ธีม dark ผูกกับ class `.dark` ที่ script ใน `__root.tsx` ใส่ให้อยู่แล้ว และกำหนด `--radius` ส่วน font ใช้ค่าเดิม
 
 - **pnpm 11:** ไม่อ่าน `pnpm.onlyBuiltDependencies` ใน `package.json` แล้ว ผมจึงตั้ง `allowBuilds` ใน `pnpm-workspace.yaml` แทน (อนุญาตแค่ `esbuild`) ได้ทดสอบแล้วว่าติดตั้งด้วย pnpm 10 ก็ยังผ่าน
 - **`tsconfig.json`:** ลบ `baseUrl` ออก เพราะ TypeScript 6 แจ้งว่า deprecated แล้ว `paths` ใช้งานได้โดยไม่ต้องมีมันตั้งแต่ TS 4.1

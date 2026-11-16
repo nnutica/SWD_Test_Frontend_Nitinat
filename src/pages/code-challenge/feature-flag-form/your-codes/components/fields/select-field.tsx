@@ -45,7 +45,8 @@ export function SelectField({
         >
           <SelectValue />
         </SelectTrigger>
-        <SelectContent>
+        {/* Popper mode is what lets the list open above the trigger */}
+        <SelectContent position="popper" side="top">
           {options.map((option) => (
             <SelectItem key={option.value} value={option.value}>
               {option.label}

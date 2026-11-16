@@ -2,6 +2,7 @@ import { XIcon } from 'lucide-react'
 import { Button } from '#/components/ui/button'
 import { useFlagForm } from '../form/form-hook'
 import { ConditionGroup } from './condition-group'
+import { ServeField } from './serve-field'
 
 interface RuleCardProps {
   index: number
@@ -30,6 +31,7 @@ export function RuleCard({ index, onRemove }: RuleCardProps) {
       </div>
 
       <ConditionGroup path={`rules[${index}].query`} depth={0} />
+      <ServeField path={`rules[${index}].serve`} />
     </article>
   )
 }

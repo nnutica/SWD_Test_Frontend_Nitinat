@@ -1,4 +1,5 @@
 import Header from '#/components/features/header'
+import { DefaultRuleField } from './components/default-rule-field'
 import { FlagMetadata } from './components/flag-metadata'
 import { JsonPreview } from './components/json-preview'
 import { TargetingRulesField } from './components/targeting-rules-field'
@@ -23,6 +24,7 @@ function YourCode() {
             <FlagMetadata form={form} />
             <VariationsField form={form} />
             <TargetingRulesField form={form} />
+            <DefaultRuleField />
           </div>
 
           <aside className="lg:sticky lg:top-4">

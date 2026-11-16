@@ -11,3 +11,6 @@ export type GroupPath = `rules[${number}].query` | ChildPath
 
 /** Conditions only ever live in a group's children. */
 export type ConditionPath = ChildPath
+
+/** Where a serve lives: the default rule or a targeting rule. */
+export type ServePath = 'defaultRule' | `rules[${number}].serve`

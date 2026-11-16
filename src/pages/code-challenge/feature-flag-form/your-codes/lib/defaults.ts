@@ -31,6 +31,15 @@ export const createServe = (variationId: string): Serve => ({
   percentage: {},
 })
 
+/** Whole-number split that always sums to 100; earlier variations get the remainder (34/33/33). */
+export function evenSplit(variationIds: string[]): Record<string, number> {
+  const base = Math.floor(100 / variationIds.length)
+  const remainder = 100 - base * variationIds.length
+  return Object.fromEntries(
+    variationIds.map((id, index) => [id, base + (index < remainder ? 1 : 0)]),
+  )
+}
+
 export const createVariation = (position: number): Variation => ({
   id: createId(),
   name: `Variation_${position}`,
