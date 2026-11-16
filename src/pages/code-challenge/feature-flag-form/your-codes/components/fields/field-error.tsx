@@ -17,7 +17,13 @@ interface FieldErrorProps {
 export function FieldError({ id, message }: FieldErrorProps) {
   if (!message) return null
   return (
-    <p id={id} role="alert" className="text-xs text-destructive">
+    // tabIndex -1: the issue list can focus a message that has no input (e.g. an empty group)
+    <p
+      id={id}
+      role="alert"
+      tabIndex={-1}
+      className="text-xs text-destructive outline-none"
+    >
       {message}
     </p>
   )

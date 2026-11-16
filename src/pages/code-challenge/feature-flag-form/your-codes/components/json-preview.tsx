@@ -1,7 +1,13 @@
 // Named import: the default export is the whole CJS module during server render
 import { Editor } from '@monaco-editor/react'
-import { CircleAlertIcon, CircleCheckIcon } from 'lucide-react'
-import { useMemo } from 'react'
+import {
+  CheckIcon,
+  CircleAlertIcon,
+  CircleCheckIcon,
+  CopyIcon,
+} from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { Button } from '#/components/ui/button'
 import { cn } from '#/lib/utils'
 import { useFlagForm } from '../form/form-hook'
 import { asFlagValues } from '../form/form-options'
@@ -21,9 +27,41 @@ const EDITOR_OPTIONS = {
 
 /** Inputs use the field name as their id, so an issue can jump to its input. */
 function focusField(fieldName: string) {
-  const element = document.getElementById(fieldName)
+  // List-level errors (e.g. an empty group) have no input, only their message
+  const element =
+    document.getElementById(fieldName) ??
+    document.getElementById(`${fieldName}-error`)
   element?.scrollIntoView({ behavior: 'smooth', block: 'center' })
   element?.focus({ preventScroll: true })
+}
+
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false)
+
+  useEffect(() => {
+    if (!copied) return
+    const timer = setTimeout(() => setCopied(false), 1500)
+    return () => clearTimeout(timer)
+  }, [copied])
+
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="xs"
+      className="text-slate-300 hover:bg-slate-800 hover:text-white"
+      onClick={() => {
+        navigator.clipboard.writeText(text).then(
+          () => setCopied(true),
+          // Clipboard can be blocked (e.g. no permission); the editor text is still selectable
+          () => setCopied(false),
+        )
+      }}
+    >
+      {copied ? <CheckIcon /> : <CopyIcon />}
+      {copied ? 'Copied' : 'Copy'}
+    </Button>
+  )
 }
 
 function PreviewPanel({ values }: { values: FlagFormValues }) {
@@ -38,23 +76,26 @@ function PreviewPanel({ values }: { values: FlagFormValues }) {
     <div className="overflow-hidden rounded-xl border border-border bg-slate-950 shadow-sm">
       <div className="flex items-center justify-between border-b border-slate-800 bg-slate-900 px-4 py-2">
         <span className="font-mono text-xs text-slate-400">flags.json</span>
-        <span
-          className={cn(
-            'flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium',
-            isValid
-              ? 'bg-emerald-500/15 text-emerald-400'
-              : 'bg-rose-500/15 text-rose-400',
-          )}
-        >
-          {isValid ? (
-            <CircleCheckIcon className="size-3.5" />
-          ) : (
-            <CircleAlertIcon className="size-3.5" />
-          )}
-          {isValid
-            ? 'Valid'
-            : `${issues.length} ${issues.length === 1 ? 'error' : 'errors'}`}
-        </span>
+        <div className="flex items-center gap-2">
+          <CopyButton text={json} />
+          <span
+            className={cn(
+              'flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium',
+              isValid
+                ? 'bg-emerald-500/15 text-emerald-400'
+                : 'bg-rose-500/15 text-rose-400',
+            )}
+          >
+            {isValid ? (
+              <CircleCheckIcon className="size-3.5" />
+            ) : (
+              <CircleAlertIcon className="size-3.5" />
+            )}
+            {isValid
+              ? 'Valid'
+              : `${issues.length} ${issues.length === 1 ? 'error' : 'errors'}`}
+          </span>
+        </div>
       </div>
 
       <Editor
@@ -69,7 +110,10 @@ function PreviewPanel({ values }: { values: FlagFormValues }) {
       />
 
       {!isValid && (
-        <ul className="max-h-48 divide-y divide-slate-800 overflow-y-auto border-t border-slate-800 text-xs">
+        <ul
+          aria-label="Problems to fix"
+          className="max-h-48 divide-y divide-slate-800 overflow-y-auto border-t border-slate-800 text-xs"
+        >
           {issues.map((issue) => (
             <li key={`${issue.fieldName}:${issue.message}`}>
               <button
@@ -78,9 +122,7 @@ function PreviewPanel({ values }: { values: FlagFormValues }) {
                 className="grid w-full gap-0.5 px-4 py-2 text-left hover:bg-slate-900 focus-visible:bg-slate-900 focus-visible:outline-none"
               >
                 <span className="text-rose-300">{issue.message}</span>
-                <span className="font-mono text-slate-500">
-                  {issue.fieldName}
-                </span>
+                <span className="text-slate-400">{issue.label}</span>
               </button>
             </li>
           ))}

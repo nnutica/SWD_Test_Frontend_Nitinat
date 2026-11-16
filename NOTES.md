@@ -49,6 +49,15 @@ your-codes/
 - error ไปขึ้นใต้ช่องที่ผิดโดยตรง เพราะ TanStack นำ path จาก Zod (เช่น `variations[1].name`) ไปจับคู่กับชื่อ field ให้
 - id ของ input ตั้งตามชื่อ field ใต้ JSON preview จึงมีรายการ error ทั้งหมด และกดแต่ละรายการเพื่อกระโดดไปที่ช่องนั้นได้
 
+## UI/UX
+
+- JSON preview อัปเดตทุกครั้งที่พิมพ์ มีป้าย **Valid / N errors** และปุ่ม **Copy** สำหรับคัดลอก config
+- ใต้ preview มีรายการ error ที่เขียนเป็นภาษาคน เช่น `my-first-flag › Rule 1 › Condition 2 › Field` แทน path ดิบ กดแล้วจะเลื่อนไปและโฟกัสที่ช่องนั้น ถ้า error ไม่มีช่องให้กรอก (เช่น group ว่าง) จะเลื่อนไปที่ข้อความ error แทน
+- error ขึ้นใต้ช่องที่ผิด และผูกกับ input ด้วย `aria-invalid` / `aria-describedby` screen reader จึงอ่านได้
+- variation แต่ละตัวมีจุดสีของตัวเอง ใช้สีเดียวกันในรายการ Variations และใน dropdown ของ Serve
+- group ที่ซ้อนกันมีพื้นหลังสลับสี และ group ว่างจะมีขอบสีแดง
+- dropdown ทุกตัวเปิดขึ้นด้านบน (Radix popper `side="top"`)
+
 ## ปัญหาที่เจอและวิธีแก้
 
 - **TS2589 "Type instantiation is excessively deep":** TanStack สร้างรายชื่อ field ทุกตัวที่เป็นไปได้จาก type ของฟอร์ม แต่ type ที่อ้างถึงตัวเองทำให้รายชื่อนี้ไม่มีวันจบ ผมแก้โดยใช้ `FlagFormState` ซึ่งให้ `children` ของ group เป็น `unknown[]` field ชั้นบนยังถูกเช็ก type ครบ ส่วน path ที่ซ้อนกันสร้างตอน runtime อยู่แล้ว และ Zod ยังตรวจทั้ง tree เหมือนเดิม
@@ -63,6 +72,7 @@ your-codes/
 - **pnpm 11:** ไม่อ่าน `pnpm.onlyBuiltDependencies` ใน `package.json` แล้ว ผมจึงตั้ง `allowBuilds` ใน `pnpm-workspace.yaml` แทน (อนุญาตแค่ `esbuild`) ได้ทดสอบแล้วว่าติดตั้งด้วย pnpm 10 ก็ยังผ่าน
 - **`tsconfig.json`:** ลบ `baseUrl` ออก เพราะ TypeScript 6 แจ้งว่า deprecated แล้ว `paths` ใช้งานได้โดยไม่ต้องมีมันตั้งแต่ TS 4.1
 - **shadcn components (switch, select, label, textarea):** สร้างจาก `radix-ui` ที่โจทย์ติดตั้งไว้แล้ว ไม่ได้เพิ่ม dependency ตอนรัน CLI บน Windows มันพยายามเพิ่ม package `cn` ที่ไม่เกี่ยวข้อง ผมจึงคืน `package.json` กับ lockfile เป็นของเดิม แล้วแก้ import ให้ชี้ไปที่ `#/lib/utils`
+- **error ของ scaffold:** แก้ import 2 บรรทัดที่ทำให้ `pnpm lint` และ `tsc` ไม่ผ่าน คือ `src/lib/utils.ts` (แยก `type ClassValue` ออกมาเป็น `import type` ตามกฎ eslint ของโปรเจกต์) และ `src/components/app-sidebar.tsx` (ลบ import ที่ไม่ได้ใช้) ตอนนี้ lint, `tsc`, test และ build ผ่านทั้งโปรเจกต์
 - **`vitest.config.ts`:** config นี้ใช้เฉพาะตอนเทส ไม่ได้ใส่ plugin ของ TanStack Start เพราะ plugin นั้นทำให้ React ถูก load เป็นสอง instance ใน jsdom จนเทส component ที่ใช้ hook ไม่ได้เลย ส่วน `vite.config.ts` ไม่ได้แก้
 
 ## เทส

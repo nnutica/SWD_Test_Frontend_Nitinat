@@ -1,5 +1,11 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import YourCode from './index'
 import type { FlagConfigOutput } from './lib/to-output'
@@ -318,5 +324,42 @@ describe('Drag and drop', () => {
     expect(preview().flags['my-first-flag'].targeting?.[0].query).toBe(
       'a eq 1 and (b eq 2)',
     )
+  })
+})
+
+describe('Problem list', () => {
+  it('names the problem in words and jumps to its input', () => {
+    render(<YourCode />)
+    typeInto(screen.getByLabelText('Flag name'), '')
+    const list = screen.getByRole('list', { name: 'Problems to fix' })
+    const problem = within(list).getByRole('button', {
+      name: /Flag name is required.*Flag 1 › Name/,
+    })
+
+    fireEvent.click(problem)
+    expect(document.activeElement).toBe(screen.getByLabelText('Flag name'))
+  })
+
+  it('jumps to the message when the problem has no input', () => {
+    render(<YourCode />)
+    fireEvent.click(screen.getByRole('button', { name: /add rule/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'Remove condition' }))
+    fireEvent.click(screen.getByRole('button', { name: /Rule 1 › Conditions/ }))
+    expect(document.activeElement?.id).toBe(
+      'flags[0].rules[0].query.children-error',
+    )
+  })
+
+  it('copies the config to the clipboard', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText },
+      configurable: true,
+    })
+    render(<YourCode />)
+    fireEvent.click(screen.getByRole('button', { name: 'Copy' }))
+
+    expect(JSON.parse(writeText.mock.calls[0][0] as string)).toEqual(preview())
+    expect(await screen.findByRole('button', { name: 'Copied' })).toBeTruthy()
   })
 })
